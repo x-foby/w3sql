@@ -42,7 +42,10 @@ func compile(q Query, target string) (string, error) {
 
 	// LIMITS
 	if q.limits != nil {
-		buf.WriteString("limit " + strconv.Itoa(q.limits.Len) + SPACE)
+		if q.limits.Len != -1 {
+			buf.WriteString("limit " + strconv.Itoa(q.limits.Len) + SPACE)
+		}
+
 		buf.WriteString("offset " + strconv.Itoa(q.limits.From) + SPACE)
 	}
 
