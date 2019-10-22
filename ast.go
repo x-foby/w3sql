@@ -29,7 +29,11 @@ type Query struct {
 
 // WrapCondition wrap current condition to new condition as y
 func (q Query) WrapCondition(x Expr, operator token) {
-	q.condition = BinaryExpr{X: x, Op: operator, Y: q.condition}
+	if q.condition == nil {
+		q.condition = x
+	} else {
+		q.condition = BinaryExpr{X: x, Op: operator, Y: q.condition}
+	}
 }
 
 // Path return full http-part
