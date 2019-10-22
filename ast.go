@@ -28,7 +28,7 @@ type Query struct {
 }
 
 // WrapCondition wrap current condition to new condition as y
-func (q Query) WrapCondition(x Expr, operator token) {
+func (q *Query) WrapCondition(x Expr, operator token) {
 	if q.condition == nil {
 		q.condition = x
 	} else {
