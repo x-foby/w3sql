@@ -44,11 +44,11 @@ func (s *Scanner) skipWhitespace() {
 	}
 }
 
-// scanIdentifier return token consisting of latin letters, decimal digits, dots and/or underscores
+// scanIdentifier return token consisting of latin letters, decimal digits, hyphen, dots and/or underscores
 func (s *Scanner) scanIdentifier() string {
 	offs := s.offset
 
-	for isLetter(s.ch) || isDigit(s.ch) || s.ch == '.' || s.ch == '_' {
+	for isLetter(s.ch) || isDigit(s.ch) || s.ch == '.' || s.ch == '_' || s.ch == '-' {
 		s.next()
 	}
 
