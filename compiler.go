@@ -93,6 +93,11 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) error {
 		}
 
 	case *Ident:
+		if t.Name == "true" || t.Name == "false" {
+			buf.WriteString(t.Name)
+			return nil
+		}
+
 		col, fields, err := getCol(t.Name, source)
 		if err != nil {
 			return err
@@ -115,6 +120,7 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) error {
 	default:
 		return fmt.Errorf("%s is not defined", t)
 	}
+
 	return nil
 }
 
