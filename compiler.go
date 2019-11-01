@@ -109,6 +109,19 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) error {
 			buf.WriteString(`"` + col.Name + `"`)
 		}
 
+	case *ExprList:
+		l := len(t.Value)
+		for i, expr := range t.Value {
+			if err := compileWhere(expr, source, buf); err != nil {
+				return err
+			}
+			if i < l-1 {
+				buf.WriteString(",")
+			}
+		}
+		// buf.WriteString(t.Op.String())
+		// return compileWhere(t.X, source, buf)
+
 	case UnaryExpr:
 		buf.WriteString(t.Op.String())
 		return compileWhere(t.X, source, buf)
@@ -148,29 +161,30 @@ func compileBinaryExpr(expr BinaryExpr, source *Source, buf *strings.Builder) er
 	case OR:
 		buf.WriteString(" or ")
 	case EQL, NEQ:
-		switch t := expr.X.(type) {
-		case *Ident:
-			col, _, err := getCol(t.Name, source)
-			if err != nil {
-				return err
-			}
-			if col.Type == JSONArray {
-				buf.WriteString("@>")
-				isJSONArray = true
-				isNEQ = expr.Op == NEQ
-			} else {
-				buf.WriteString(expr.Op.String())
-			}
-
-		case *IdentList:
+		if _, ok := expr.Y.(*ExprList); ok {
 			isList = true
 			if expr.Op == NEQ {
 				buf.WriteString(" not")
 			}
 			buf.WriteString(" in ")
+		} else {
+			switch t := expr.X.(type) {
+			case *Ident:
+				col, _, err := getCol(t.Name, source)
+				if err != nil {
+					return err
+				}
+				if col.Type == JSONArray {
+					buf.WriteString("@>")
+					isJSONArray = true
+					isNEQ = expr.Op == NEQ
+				} else {
+					buf.WriteString(expr.Op.String())
+				}
 
-		default:
-			buf.WriteString(expr.Op.String())
+			default:
+				buf.WriteString(expr.Op.String())
+			}
 		}
 
 	default:
