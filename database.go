@@ -34,11 +34,13 @@ func ScanToStruct(s interface{}, rows *sql.Rows) error {
 	var dest = make([]interface{}, len(cols))
 	for i, col := range cols {
 		fieldIdx, ok := fields[col]
-		if !ok {
-			return errors.New(col + " does not have db-tag")
+		if ok {
+			dest[i] = el.Field(fieldIdx).Addr().Interface()
+			continue
 		}
 
-		dest[i] = el.Field(fieldIdx).Addr().Interface()
+		var temp interface{}
+		dest[i] = &temp
 	}
 
 	return rows.Scan(dest...)
