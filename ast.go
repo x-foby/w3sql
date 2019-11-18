@@ -27,6 +27,26 @@ type Query struct {
 	limits    *Limits
 }
 
+// Limits return copy of Query limits
+func (q *Query) Limits() *Limits {
+	if q.limits == nil {
+		return nil
+	}
+
+	limits := *q.limits
+	return &limits
+}
+
+// Condition return Query condition
+func (q *Query) Condition() Expr {
+	return q.condition
+}
+
+// RewriteCondition set new condition for Quoery instead current condition
+func (q *Query) RewriteCondition(cond Expr) {
+	q.condition = cond
+}
+
 // WrapCondition wrap current condition to new condition as y
 func (q *Query) WrapCondition(x Expr, operator token) {
 	if q.condition == nil {
