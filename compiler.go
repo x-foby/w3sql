@@ -32,9 +32,12 @@ func compile(q Query, target string) (string, error) {
 
 	// WHERE
 	var where strings.Builder
-	if err := compileWhere(q.condition, source, &where); err != nil {
+	appendStr, err := compileWhere(q.condition, source, &where)
+	if err != nil {
 		return "", err
 	}
+
+	buf.WriteString(appendStr)
 
 	if where.Len() != 0 {
 		buf.WriteString("where " + where.String() + SPACE)
@@ -79,11 +82,12 @@ func compileSelect(fields *IdentList, source *Source, buf *strings.Builder) erro
 	return nil
 }
 
-func compileWhere(cond Expr, source *Source, buf *strings.Builder) error {
+func compileWhere(cond Expr, source *Source, buf *strings.Builder) (string, error) {
 	if cond == nil {
-		return nil
+		return "", nil
 	}
 
+	var appendStr string
 	switch t := cond.(type) {
 	case *Const:
 		if t.tok == STRING {
@@ -95,26 +99,39 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) error {
 	case *Ident:
 		if t.Name == "true" || t.Name == "false" {
 			buf.WriteString(t.Name)
-			return nil
+			return "", nil
 		}
 
 		col, fields, err := getCol(t.Name, source)
 		if err != nil {
-			return err
+			return "", nil
 		}
 
-		if col.Type == JSONObject {
+		switch col.Type {
+		case JSONObject:
 			buf.WriteString(`"` + col.Name + `"#>>'{` + strings.Join(fields, ",") + "}'")
-		} else {
+		case JSONArray:
+			if col.ChildrenType == JSONObject {
+				buf.WriteString(`exists(select 1 from jsonb_array_elements("` + col.Name + `") item where item#>>'{` + strings.Join(fields, ",") + "}'")
+				appendStr = " limit 1)"
+			} else {
+				buf.WriteString(`"` + col.Name + `"`)
+			}
+
+		default:
 			buf.WriteString(`"` + col.Name + `"`)
 		}
 
 	case *ExprList:
 		l := len(t.Value)
 		for i, expr := range t.Value {
-			if err := compileWhere(expr, source, buf); err != nil {
-				return err
+			appendStr, err := compileWhere(expr, source, buf)
+			if err != nil {
+				return "", nil
 			}
+
+			buf.WriteString(appendStr)
+
 			if i < l-1 {
 				buf.WriteString(",")
 			}
@@ -128,13 +145,13 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) error {
 
 	case BinaryExpr:
 		if err := compileBinaryExpr(t, source, buf); err != nil {
-			return err
+			return "", nil
 		}
 	default:
-		return fmt.Errorf("%s is not defined", t)
+		return "", fmt.Errorf("%s is not defined", t)
 	}
 
-	return nil
+	return appendStr, nil
 }
 
 func compileBinaryExpr(expr BinaryExpr, source *Source, buf *strings.Builder) error {
@@ -146,7 +163,8 @@ func compileBinaryExpr(expr BinaryExpr, source *Source, buf *strings.Builder) er
 	}
 
 	buf.WriteString(lp)
-	if err := compileWhere(expr.X, source, buf); err != nil {
+	appendStrX, err := compileWhere(expr.X, source, buf)
+	if err != nil {
 		return err
 	}
 	buf.WriteString(rp)
@@ -207,9 +225,15 @@ func compileBinaryExpr(expr BinaryExpr, source *Source, buf *strings.Builder) er
 
 	buf.WriteString(qt)
 	buf.WriteString(lp)
-	if err := compileWhere(expr.Y, source, buf); err != nil {
+	appendStrY, err := compileWhere(expr.Y, source, buf)
+	if err != nil {
 		return err
 	}
+	buf.WriteString(appendStrY)
+	if appendStrX == " limit 1)" {
+		buf.WriteString("::text")
+	}
+	buf.WriteString(appendStrX)
 	buf.WriteString(rp)
 	buf.WriteString(qt)
 
@@ -236,8 +260,8 @@ func getCol(name string, source *Source) (*Col, []string, error) {
 		return nil, nil, fmt.Errorf("%s is not defined", name)
 	}
 
-	if col.Type != JSONObject {
-		return nil, nil, fmt.Errorf("%s is not JSON-object", name)
+	if col.Type != JSONObject && col.Type != JSONArray {
+		return nil, nil, fmt.Errorf("%s is not JSON", name)
 	}
 
 	return &col, names[1:], nil

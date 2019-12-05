@@ -30,9 +30,10 @@ const (
 
 // Col is a column
 type Col struct {
-	Type     Datatype
-	Name     string
-	Required bool
+	Type         Datatype
+	ChildrenType Datatype
+	Name         string
+	Required     bool
 }
 
 // Cols is a columns map
