@@ -9,15 +9,26 @@ import (
 	"strings"
 )
 
+// Option is a servers option
+type Option int
+
+// options
+const (
+	OptJSONResult = iota + 1
+)
+
 // Server is a sources list
 type Server struct {
-	sources map[string]*Source
+	resultAsJSON bool
+	errorHandler func(status int, err error) []byte
+	sources      map[string]*Source
 }
 
 // NewServer return new Server
-func NewServer() *Server {
+func NewServer(options ...Option) *Server {
 	return &Server{
-		sources: make(map[string]*Source),
+		resultAsJSON: contains(options, OptJSONResult),
+		sources:      make(map[string]*Source),
 	}
 }
 
@@ -44,7 +55,7 @@ func (w3 *Server) Route(path string, s *Source) error {
 func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	src, err := url.QueryUnescape(strings.Replace(r.URL.RequestURI(), "+", "$add$", -1))
 	if err != nil {
-		badRequest(w, err)
+		w3.error(w, http.StatusBadRequest, err)
 		return
 	}
 	src = strings.Replace(src, "$add$", "+", -1)
@@ -52,7 +63,7 @@ func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var p Parser
 	q, err := p.Parse(&w3, src)
 	if err != nil {
-		badRequest(w, err)
+		w3.error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -60,25 +71,25 @@ func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	s, ok := w3.sources[path]
 	if !ok {
-		notFound(w, method+" "+path)
+		w3.error(w, http.StatusNotFound, errors.New(method+" "+path))
 		return
 	}
 
 	h, ok := s.Handlers[method]
 	if !ok {
-		notFound(w, method+" "+path)
+		w3.error(w, http.StatusNotFound, errors.New(method+" "+path))
 		return
 	}
 
 	status, data, err := h(Context{&w3, q, w, r})
 	if err != nil {
-		printErr(w, status, err)
+		w3.error(w, status, err)
 		return
 	}
 
 	buf, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		printErr(w, status, err)
+		w3.error(w, status, err)
 		return
 	}
 
@@ -86,24 +97,33 @@ func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf)
 }
 
-func printErr(w http.ResponseWriter, code int, err error) {
+func (w3 Server) error(w http.ResponseWriter, code int, err error) {
 	w.WriteHeader(code)
-	w.Write([]byte(err.Error()))
+	if !w3.resultAsJSON {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	if w3.errorHandler != nil {
+		w.Write(w3.errorHandler(code, err))
+		return
+	}
+
+	buf, err := json.MarshalIndent(err, "", "  ")
+	if err != nil {
+		w.Write([]byte(http.StatusText(code)))
+	}
+
+	w.Write(buf)
 }
 
-func notFound(w http.ResponseWriter, address string) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte(http.StatusText(http.StatusNotFound) + ": " + address))
-}
-
-func internalServerError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(http.StatusText(http.StatusInternalServerError) + ": " + err.Error()))
-}
-
-func badRequest(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte(http.StatusText(http.StatusBadRequest) + ": " + err.Error()))
+func contains(options []Option, option Option) bool {
+	for _, o := range options {
+		if o == option {
+			return true
+		}
+	}
+	return false
 }
 
 // func unescape(s string) string {
