@@ -51,8 +51,14 @@ func (w3 *Server) Route(path string, s *Source) error {
 	return nil
 }
 
+// SetErrorHandler set handler that returns []byte
+func (w3 *Server) SetErrorHandler(errorHandler func(status int, err error) []byte) *Server {
+	w3.errorHandler = errorHandler
+	return w3
+}
+
 // ServeHTTP is a default w3sql-handler
-func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (w3 *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	src, err := url.QueryUnescape(strings.Replace(r.URL.RequestURI(), "+", "$add$", -1))
 	if err != nil {
 		w3.error(w, http.StatusBadRequest, err)
@@ -61,7 +67,7 @@ func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	src = strings.Replace(src, "$add$", "+", -1)
 
 	var p Parser
-	q, err := p.Parse(&w3, src)
+	q, err := p.Parse(w3, src)
 	if err != nil {
 		w3.error(w, http.StatusBadRequest, err)
 		return
@@ -81,7 +87,7 @@ func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, data, err := h(Context{&w3, q, w, r})
+	status, data, err := h(Context{w3, q, w, r})
 	if err != nil {
 		w3.error(w, status, err)
 		return
@@ -97,7 +103,7 @@ func (w3 Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf)
 }
 
-func (w3 Server) error(w http.ResponseWriter, code int, err error) {
+func (w3 *Server) error(w http.ResponseWriter, code int, err error) {
 	w.WriteHeader(code)
 	if !w3.resultAsJSON {
 		w.Write([]byte(err.Error()))
@@ -125,7 +131,3 @@ func contains(options []Option, option Option) bool {
 	}
 	return false
 }
-
-// func unescape(s string) string {
-
-// }
