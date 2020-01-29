@@ -229,6 +229,9 @@ func compileBinaryExpr(expr BinaryExpr, source *Source, buf *strings.Builder) er
 	if err != nil {
 		return err
 	}
+	if strings.HasPrefix(appendStrY, "'") && strings.HasSuffix(appendStrY, "'") {
+		appendStrY = `"` + appendStrY[1:len(appendStrY)-1] + `"`
+	}
 	buf.WriteString(appendStrY)
 	if appendStrX == " limit 1)" {
 		buf.WriteString("::text")
