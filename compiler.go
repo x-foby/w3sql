@@ -32,7 +32,7 @@ func compile(q Query, target string) (string, error) {
 
 	// WHERE
 	var where strings.Builder
-	appendStr, err := compileWhere(q.condition, source, &where)
+	appendStr, err := compileWhere(q.condition, source, &where, false)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func compileSelect(fields *IdentList, source *Source, buf *strings.Builder) erro
 	return nil
 }
 
-func compileWhere(cond Expr, source *Source, buf *strings.Builder) (string, error) {
+func compileWhere(cond Expr, source *Source, buf *strings.Builder, compareWithJSON bool) (string, error) {
 	if cond == nil {
 		return "", nil
 	}
@@ -91,7 +91,11 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) (string, erro
 	switch t := cond.(type) {
 	case *Const:
 		if t.tok == STRING {
-			buf.WriteString("'" + strings.ReplaceAll(t.Value, "'", "''") + "'")
+			if compareWithJSON {
+				buf.WriteString(`"` + t.Value + `"`)
+			} else {
+				buf.WriteString("'" + strings.ReplaceAll(t.Value, "'", "''") + "'")
+			}
 		} else {
 			buf.WriteString(t.Value)
 		}
@@ -125,7 +129,7 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) (string, erro
 	case *ExprList:
 		l := len(t.Value)
 		for i, expr := range t.Value {
-			appendStr, err := compileWhere(expr, source, buf)
+			appendStr, err := compileWhere(expr, source, buf, false)
 			if err != nil {
 				return "", nil
 			}
@@ -141,7 +145,7 @@ func compileWhere(cond Expr, source *Source, buf *strings.Builder) (string, erro
 
 	case UnaryExpr:
 		buf.WriteString(t.Op.String())
-		return compileWhere(t.X, source, buf)
+		return compileWhere(t.X, source, buf, false)
 
 	case BinaryExpr:
 		if err := compileBinaryExpr(t, source, buf); err != nil {
@@ -163,7 +167,7 @@ func compileBinaryExpr(expr BinaryExpr, source *Source, buf *strings.Builder) er
 	}
 
 	buf.WriteString(lp)
-	appendStrX, err := compileWhere(expr.X, source, buf)
+	appendStrX, err := compileWhere(expr.X, source, buf, false)
 	if err != nil {
 		return err
 	}
@@ -225,12 +229,9 @@ func compileBinaryExpr(expr BinaryExpr, source *Source, buf *strings.Builder) er
 
 	buf.WriteString(qt)
 	buf.WriteString(lp)
-	appendStrY, err := compileWhere(expr.Y, source, buf)
+	appendStrY, err := compileWhere(expr.Y, source, buf, isJSONArray)
 	if err != nil {
 		return err
-	}
-	if strings.HasPrefix(appendStrY, "'") && strings.HasSuffix(appendStrY, "'") {
-		appendStrY = `"` + appendStrY[1:len(appendStrY)-1] + `"`
 	}
 	buf.WriteString(appendStrY)
 	if appendStrX == " limit 1)" {
