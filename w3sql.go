@@ -15,11 +15,13 @@ type Option int
 // options
 const (
 	OptJSONResult = iota + 1
+	OptPrettyJSON
 )
 
 // Server is a sources list
 type Server struct {
 	resultAsJSON bool
+	prettyJSON   bool
 	errorHandler func(status int, err error) []byte
 	sources      map[string]*Source
 }
@@ -93,7 +95,7 @@ func (w3 *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buf, err := json.MarshalIndent(data, "", "  ")
+	buf, err := marshalJSON(data, w3.prettyJSON)
 	if err != nil {
 		w3.error(w, status, err)
 		return
@@ -115,7 +117,7 @@ func (w3 *Server) error(w http.ResponseWriter, code int, err error) {
 		return
 	}
 
-	buf, err := json.MarshalIndent(err, "", "  ")
+	buf, err := marshalJSON(err, w3.prettyJSON)
 	if err != nil {
 		w.Write([]byte(http.StatusText(code)))
 	}
@@ -130,4 +132,11 @@ func contains(options []Option, option Option) bool {
 		}
 	}
 	return false
+}
+
+func marshalJSON(data interface{}, pretty bool) ([]byte, error) {
+	if pretty {
+		return json.MarshalIndent(data, "", "  ")
+	}
+	return json.Marshal(data)
 }
