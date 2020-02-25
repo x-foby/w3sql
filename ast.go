@@ -27,6 +27,40 @@ type Query struct {
 	limits    *Limits
 }
 
+// Fields return Fields
+func (q *Query) Fields() []string {
+	if q.path == nil {
+		return nil
+	}
+
+	source, ok := q.server.sources[q.Path()]
+	if !ok || source == nil {
+		return nil
+	}
+
+	var fields []string
+	if q.fields == nil || len(*q.fields) == 0 {
+		for k := range source.Cols {
+			fields = append(fields, k)
+		}
+	} else {
+		fields = make([]string, len(*q.fields))
+		for i, f := range *q.fields {
+			col, fields, err := getCol(f.Name, source)
+			if err != nil {
+				return nil
+			}
+			if len(fields) > 0 {
+				return nil
+			}
+
+			fields[i] = col.Name
+		}
+	}
+
+	return fields
+}
+
 // Limits return copy of Query limits
 func (q *Query) Limits() *Limits {
 	if q.limits == nil {
