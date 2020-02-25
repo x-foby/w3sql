@@ -38,15 +38,7 @@ func (q *Query) Fields() []string {
 		return nil
 	}
 
-	if q.fields == nil {
-		var fields []string
-		for k := range source.Cols {
-			fields = append(fields, k)
-		}
-		return fields
-	}
-
-	if len(*q.fields) == 0 {
+	if q.fields == nil || len(*q.fields) == 0 {
 		var fields []string
 		for k := range source.Cols {
 			fields = append(fields, k)
@@ -56,11 +48,8 @@ func (q *Query) Fields() []string {
 
 	fields := make([]string, len(*q.fields))
 	for i, f := range *q.fields {
-		col, fields, err := getCol(f.Name, source)
+		col, _, err := getCol(f.Name, source)
 		if err != nil {
-			return nil
-		}
-		if len(fields) > 0 {
 			return nil
 		}
 
