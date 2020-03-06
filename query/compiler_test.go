@@ -21,17 +21,17 @@ var cases = []struct {
 			condition: ast.NewBinaryExpr(
 				token.AND,
 				ast.NewBinaryExpr(token.EQL, ast.NewIdent("colA", 5), ast.NewConst("b", 7, token.STRING), 6),
-				ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 12), ast.NewConst("a", 14, token.STRING), 13),
+				ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 12), ast.NewIdent("true", 14), 13),
 				10,
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
 					source.NewCol(source.TypeString, "colA", "col_a", false),
-					source.NewCol(source.TypeString, "b", "b", false),
+					source.NewCol(source.TypeBool, "b", "b", false),
 				),
 			},
 		},
-		Result: "select * from table where col_a = 'b' and b = 'a'",
+		Result: "select * from table where col_a = 'b' and b = true",
 	},
 	{
 		Name:   "Simple",

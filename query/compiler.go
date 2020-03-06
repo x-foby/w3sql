@@ -129,7 +129,6 @@ func (q *Query) compileUnaryExpr(expr *ast.UnaryExpr) (string, error) {
 }
 
 func (q *Query) compileBinaryExpr(expr *ast.BinaryExpr) (string, error) {
-	// var op string
 	switch expr.Op {
 	case token.AND, token.OR:
 		x, ok := expr.X.(*ast.BinaryExpr)
@@ -171,15 +170,25 @@ func (q *Query) compileBinaryExpr(expr *ast.BinaryExpr) (string, error) {
 		if xCol == nil {
 			return "", q.notDefined(x.(*ast.Ident).Name, x.Pos())
 		}
-		y, ok = expr.Y.(*ast.Const)
-		if !ok {
-			return "", q.unexpect(y.Token(), y.Pos())
-		}
 		compiledX, err := q.compileIdent(x.(*ast.Ident))
 		if err != nil {
 			return "", err
 		}
-		compiledY, err := q.compileConst(y.(*ast.Const))
+		var compiledY string
+		switch y := expr.Y.(type) {
+		case *ast.Const:
+			compiledY, err = q.compileConst(y)
+			if err != nil {
+				return "", err
+			}
+		case *ast.Ident:
+			compiledY, err = q.compileIdent(y)
+			if err != nil {
+				return "", err
+			}
+		default:
+			return "", q.unexpect(y.Token(), y.Pos())
+		}
 		if err != nil {
 			return "", err
 		}
@@ -239,10 +248,6 @@ func (q *Query) compileBinaryExprWithExprList(x ast.Expr, y *ast.ExprList) (stri
 	if !ok {
 		return "", q.unexpect(x.Token(), x.Pos())
 	}
-	// compiledX, err := q.compileIdent(typedX)
-	// if err != nil {
-	// 	return "", err
-	// }
 	column := q.source.Cols.ByName(typedX.Name)
 	if column == nil {
 		return "", q.notDefined(typedX.Name, x.Pos())
@@ -441,11 +446,16 @@ func (q *Query) compileObject(expr *ast.BinaryExpr, column *source.Col) (string,
 }
 
 func (q *Query) compileIdent(expr *ast.Ident) (string, error) {
-	column := q.source.Cols.ByName(expr.Name)
-	if column == nil {
-		q.notDefined(expr.Name, expr.Pos())
+	switch expr.Name {
+	case "true", "false", "null":
+		return expr.Name, nil
+	default:
+		column := q.source.Cols.ByName(expr.Name)
+		if column == nil {
+			q.notDefined(expr.Name, expr.Pos())
+		}
+		return column.DBName, nil
 	}
-	return column.DBName, nil
 }
 
 func (q *Query) compileConst(expr *ast.Const) (string, error) {
