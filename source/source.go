@@ -20,14 +20,16 @@ type Col struct {
 	IsArray  bool
 	Children Cols
 	Name     string
+	DBName   string
 	Required bool
 }
 
 // NewCol returns new Col
-func NewCol(datatype Datatype, name string, isArray bool) *Col {
+func NewCol(datatype Datatype, name, dbName string, isArray bool) *Col {
 	return &Col{
 		Type:    datatype,
 		Name:    name,
+		DBName:  dbName,
 		IsArray: isArray,
 	}
 }
@@ -47,8 +49,8 @@ func NewCols(cols ...*Col) Cols {
 }
 
 // NewCol add new col to cols
-func (c Cols) NewCol(datatype Datatype, name string, isArray bool) Cols {
-	c[name] = NewCol(datatype, name, isArray)
+func (c Cols) NewCol(datatype Datatype, name, dbName string, isArray bool) Cols {
+	c[name] = NewCol(datatype, name, dbName, isArray)
 	return c
 }
 
@@ -67,6 +69,15 @@ func (c Cols) ByName(name string) *Col {
 	return c.byName(name, c)
 }
 
+// JSONPath returns column by name
+func (c Cols) JSONPath(name string) (string, bool) {
+	path := c.pathByName(name, c)
+	if len(path) < 2 {
+		return "", false
+	}
+	return strings.Join(path[1:], ","), true
+}
+
 // Type returns columns datatype
 func (c Cols) Type(name string) *Datatype {
 	col := c.byName(name, c)
@@ -76,7 +87,6 @@ func (c Cols) Type(name string) *Datatype {
 	return &col.Type
 }
 
-// ByName returns column by name
 func (c Cols) byName(name string, cols Cols) *Col {
 	parts := strings.Split(name, ".")
 	key := name
@@ -92,6 +102,23 @@ func (c Cols) byName(name string, cols Cols) *Col {
 		return c.byName(n, col.Children)
 	}
 	return col
+}
+
+func (c Cols) pathByName(name string, cols Cols) []string {
+	parts := strings.Split(name, ".")
+	key := name
+	if len(parts) > 1 {
+		key = parts[0]
+	}
+	col, ok := cols[key]
+	if !ok {
+		return nil
+	}
+	if len(parts) > 1 {
+		n := strings.Join(parts[1:], ".")
+		return append([]string{col.DBName}, c.pathByName(n, col.Children)...)
+	}
+	return []string{col.DBName}
 }
 
 // A Source is a columns list

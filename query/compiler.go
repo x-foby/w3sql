@@ -59,7 +59,11 @@ func (q *Query) compileSelect() (string, error) {
 	}
 	fields := make([]string, len(*q.fields))
 	for i, f := range *q.fields {
-		fields[i] = f.Name
+		column := q.source.Cols.ByName(f.Name)
+		if column == nil {
+			return "", q.notDefined(f.Name, f.Pos())
+		}
+		fields[i] = column.DBName
 	}
 	return strings.Join(fields, ", "), nil
 }
@@ -269,7 +273,7 @@ func (q *Query) compileBinaryExprWithExprList(x ast.Expr, y *ast.ExprList) (stri
 		return "", err
 	}
 	if column.IsArray {
-		return "exists (select 1 from (select jsonb_array_elements(" + typedX.Name + "::jsonb) item) q where " + compiledY + ")", nil
+		return "exists (select 1 from (select jsonb_array_elements(" + column.DBName + "::jsonb) item) q where " + compiledY + ")", nil
 	}
 	return compiledY, nil
 }
@@ -353,7 +357,10 @@ func (q *Query) compileArrayOfObject(expr *ast.BinaryExpr, column *source.Col) (
 	default:
 		return "", q.mustBe(name, "boolean/numeric/text/timestamp", "any", ident.Pos())
 	}
-	path := strings.Join(strings.Split(ident.Name, "."), ", ")
+	path, ok := q.source.Cols.JSONPath(name)
+	if !ok {
+		return "", q.notDefined(name, ident.Pos())
+	}
 	var compiledY string
 	yConst, ok := expr.Y.(*ast.Const)
 	if !ok {
@@ -403,7 +410,10 @@ func (q *Query) compileObject(expr *ast.BinaryExpr, column *source.Col) (string,
 	default:
 		return "", q.mustBe(name, "boolean/numeric/text/timestamp", "any", ident.Pos())
 	}
-	path := strings.Join(strings.Split(ident.Name, "."), ", ")
+	path, ok := q.source.Cols.JSONPath(name)
+	if !ok {
+		return "", q.notDefined(name, ident.Pos())
+	}
 	var compiledY string
 	yConst, ok := expr.Y.(*ast.Const)
 	if !ok {
@@ -427,11 +437,15 @@ func (q *Query) compileObject(expr *ast.BinaryExpr, column *source.Col) (string,
 	if err != nil {
 		return "", err
 	}
-	return "(" + column.Name + " #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
+	return "(" + column.DBName + " #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
 }
 
 func (q *Query) compileIdent(expr *ast.Ident) (string, error) {
-	return expr.Name, nil
+	column := q.source.Cols.ByName(expr.Name)
+	if column == nil {
+		q.notDefined(expr.Name, expr.Pos())
+	}
+	return column.DBName, nil
 }
 
 func (q *Query) compileConst(expr *ast.Const) (string, error) {
@@ -497,7 +511,11 @@ func (q *Query) compileOrderBy() (string, error) {
 	}
 	orderBy := make([]string, len(*q.orderBy))
 	for i, f := range *q.orderBy {
-		orderBy[i] = f.Field.Name + " " + string(f.Direction.Value)
+		column := q.source.Cols.ByName(f.Field.Name)
+		if column == nil {
+			q.notDefined(f.Field.Name, f.Field.Pos())
+		}
+		orderBy[i] = column.DBName + " " + string(f.Direction.Value)
 	}
 	return strings.Join(orderBy, ", "), nil
 }

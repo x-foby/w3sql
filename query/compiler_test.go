@@ -20,18 +20,18 @@ var cases = []struct {
 		Query: &Query{
 			condition: ast.NewBinaryExpr(
 				token.AND,
-				ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 5), ast.NewConst("b", 7, token.STRING), 6),
+				ast.NewBinaryExpr(token.EQL, ast.NewIdent("colA", 5), ast.NewConst("b", 7, token.STRING), 6),
 				ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 12), ast.NewConst("a", 14, token.STRING), 13),
 				10,
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeString, "a", false),
-					source.NewCol(source.TypeString, "b", false),
+					source.NewCol(source.TypeString, "colA", "col_a", false),
+					source.NewCol(source.TypeString, "b", "b", false),
 				),
 			},
 		},
-		Result: "select * from table where a = 'b' and b = 'a'",
+		Result: "select * from table where col_a = 'b' and b = 'a'",
 	},
 	{
 		Name:   "Simple",
@@ -49,8 +49,8 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeString, "a", false),
-					source.NewCol(source.TypeString, "b", false),
+					source.NewCol(source.TypeString, "a", "a", false),
+					source.NewCol(source.TypeString, "b", "b", false),
 				),
 			},
 		},
@@ -78,10 +78,10 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeNumber, "a", false),
-					source.NewCol(source.TypeNumber, "b", false),
-					source.NewCol(source.TypeNumber, "c", false),
-					source.NewCol(source.TypeNumber, "d", false),
+					source.NewCol(source.TypeNumber, "a", "a", false),
+					source.NewCol(source.TypeNumber, "b", "b", false),
+					source.NewCol(source.TypeNumber, "c", "c", false),
+					source.NewCol(source.TypeNumber, "d", "d", false),
 				),
 			},
 		},
@@ -100,8 +100,8 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeString, "a", false),
-					source.NewCol(source.TypeString, "b", false),
+					source.NewCol(source.TypeString, "a", "a", false),
+					source.NewCol(source.TypeString, "b", "b", false),
 				),
 			},
 		},
@@ -120,8 +120,8 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeString, "a", false),
-					source.NewCol(source.TypeString, "b", false),
+					source.NewCol(source.TypeString, "a", "a", false),
+					source.NewCol(source.TypeString, "b", "b", false),
 				),
 			},
 		},
@@ -140,8 +140,8 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeString, "a", false),
-					source.NewCol(source.TypeString, "b", true),
+					source.NewCol(source.TypeString, "a", "a", false),
+					source.NewCol(source.TypeString, "b", "b", true),
 				),
 			},
 		},
@@ -165,10 +165,10 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeObject, "a", true).WithChildren(source.NewCols(
-						source.NewCol(source.TypeString, "b", false),
+					source.NewCol(source.TypeObject, "a", "a", true).WithChildren(source.NewCols(
+						source.NewCol(source.TypeString, "b", "b", false),
 					)),
-					source.NewCol(source.TypeString, "b", true),
+					source.NewCol(source.TypeString, "b", "b", true),
 				),
 			},
 		},
@@ -192,10 +192,10 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeObject, "a", false).WithChildren(source.NewCols(
-						source.NewCol(source.TypeString, "b", false),
+					source.NewCol(source.TypeObject, "a", "a", false).WithChildren(source.NewCols(
+						source.NewCol(source.TypeString, "b", "b", false),
 					)),
-					source.NewCol(source.TypeString, "b", true),
+					source.NewCol(source.TypeString, "b", "b", true),
 				),
 			},
 		},
@@ -222,17 +222,17 @@ var cases = []struct {
 			),
 			source: &source.Source{
 				Cols: source.NewCols(
-					source.NewCol(source.TypeString, "b", true),
-					source.NewCol(source.TypeObject, "a", true).WithChildren(source.NewCols(
-						source.NewCol(source.TypeString, "b", false),
-						source.NewCol(source.TypeObject, "c", true).WithChildren(source.NewCols(
-							source.NewCol(source.TypeNumber, "d", false),
+					source.NewCol(source.TypeString, "b", "b", true),
+					source.NewCol(source.TypeObject, "a", "a", true).WithChildren(source.NewCols(
+						source.NewCol(source.TypeString, "b", "b", false),
+						source.NewCol(source.TypeObject, "c", "c", true).WithChildren(source.NewCols(
+							source.NewCol(source.TypeNumber, "d", "d", false),
 						)),
 					)),
 				),
 			},
 		},
-		Result: `select a, b from table where exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{b}')::text = 'b'::text and (q.item #>> '{c, d}')::numeric = 4::numeric) and b @> '"a"'`,
+		Result: `select a, b from table where exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{b}')::text = 'b'::text and (q.item #>> '{c,d}')::numeric = 4::numeric) and b @> '"a"'`,
 	},
 }
 
