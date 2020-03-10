@@ -151,6 +151,12 @@ func (q *Query) compileBinaryExpr(expr *ast.BinaryExpr) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if x.Op.Precedence() < expr.Op.Precedence() {
+			compiledX = "(" + compiledX + ")"
+		}
+		if y.Op.Precedence() < expr.Op.Precedence() {
+			compiledY = "(" + compiledY + ")"
+		}
 		return compiledX + " " + op + " " + compiledY, nil
 	case token.EQL, token.NEQ:
 		var x, y ast.Expr

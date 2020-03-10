@@ -72,6 +72,27 @@ var cases = []struct {
 		),
 	},
 	{
+		Name: "Query. Many OR",
+		Src:  `/foo?(a="a"|a="b"|a="c")&b="a"`,
+		Path: "foo",
+		Expr: ast.NewBinaryExpr(
+			token.AND,
+			ast.NewBinaryExpr(
+				token.OR,
+				ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 6), ast.NewConst("a", 8, token.STRING), 7),
+				ast.NewBinaryExpr(
+					token.OR,
+					ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 12), ast.NewConst("b", 14, token.STRING), 13),
+					ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 18), ast.NewConst("c", 20, token.STRING), 19),
+					17,
+				),
+				11,
+			),
+			ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 25), ast.NewConst("a", 27, token.STRING), 26),
+			24,
+		),
+	},
+	{
 		Name: "Query. Paren first",
 		Src:  `/foo?(a="b")&b="a"`,
 		Path: "foo",
@@ -171,7 +192,7 @@ var cases = []struct {
 		),
 	},
 	{
-		Name: "Query. JSON or",
+		Name: "Query. JSON OR",
 		Src:  `/foo?a={a="b",b>="a"}|b=true`,
 		Path: "foo",
 		Expr: ast.NewBinaryExpr(
@@ -188,6 +209,47 @@ var cases = []struct {
 			),
 			ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 22), ast.NewIdent("true", 24), 23),
 			21,
+		),
+	},
+	{
+		Name: "Query. JSON Many OR",
+		Src:  `/foo?(a={a="b"}|a={a="c"})&a={b=1}&b=true`,
+		Path: "foo",
+		Expr: ast.NewBinaryExpr(
+			token.AND,
+			ast.NewBinaryExpr(
+				token.OR,
+				ast.NewBinaryExpr(
+					token.EQL,
+					ast.NewIdent("a", 6),
+					ast.NewExprList(8, ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 9), ast.NewConst("b", 11, token.STRING), 10)),
+					7,
+				),
+				ast.NewBinaryExpr(
+					token.EQL,
+					ast.NewIdent("a", 16),
+					ast.NewExprList(18, ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 19), ast.NewConst("c", 21, token.STRING), 20)),
+					17,
+				),
+				15,
+			),
+			ast.NewBinaryExpr(
+				token.AND,
+				ast.NewBinaryExpr(
+					token.EQL,
+					ast.NewIdent("a", 27),
+					ast.NewExprList(29, ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 30), ast.NewConst("1", 32, token.INT), 31)),
+					28,
+				),
+				ast.NewBinaryExpr(
+					token.EQL,
+					ast.NewIdent("b", 35),
+					ast.NewIdent("true", 37),
+					36,
+				),
+				34,
+			),
+			26,
 		),
 	},
 	{
