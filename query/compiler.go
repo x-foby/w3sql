@@ -458,7 +458,7 @@ func (q *Query) compileIdent(expr *ast.Ident) (string, error) {
 	default:
 		column := q.source.Cols.ByName(expr.Name)
 		if column == nil {
-			q.notDefined(expr.Name, expr.Pos())
+			return "", q.notDefined(expr.Name, expr.Pos())
 		}
 		return column.DBName, nil
 	}
@@ -529,7 +529,7 @@ func (q *Query) compileOrderBy() (string, error) {
 	for i, f := range *q.orderBy {
 		column := q.source.Cols.ByName(f.Field.Name)
 		if column == nil {
-			q.notDefined(f.Field.Name, f.Field.Pos())
+			return "", q.notDefined(f.Field.Name, f.Field.Pos())
 		}
 		orderBy[i] = column.DBName + " " + string(f.Direction.Value)
 	}
