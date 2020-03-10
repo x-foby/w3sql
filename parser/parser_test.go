@@ -274,6 +274,17 @@ var cases = []struct {
 		),
 	},
 	{
+		Name: "Sort. One json-field",
+		Src:  "/foo:+a.b",
+		Path: "foo",
+		OrderBy: ast.NewOrderByStmtList(
+			ast.NewOrderByStmt(
+				ast.NewIdent("a.b", 6),
+				ast.NewOrderByDir(ast.OrderAsc, 5, token.PLUS),
+			),
+		),
+	},
+	{
 		Name: "Sort. Two field",
 		Src:  "/foo:+a,-b",
 		Path: "foo",

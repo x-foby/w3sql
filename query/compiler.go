@@ -527,11 +527,23 @@ func (q *Query) compileOrderBy() (string, error) {
 	}
 	orderBy := make([]string, len(*q.orderBy))
 	for i, f := range *q.orderBy {
+		var compiled string
 		column := q.source.Cols.ByName(f.Field.Name)
 		if column == nil {
 			return "", q.notDefined(f.Field.Name, f.Field.Pos())
 		}
-		orderBy[i] = column.DBName + " " + string(f.Direction.Value)
+		path, ok := q.source.Cols.JSONPath(f.Field.Name)
+		if ok {
+			parts := strings.Split(f.Field.Name, ".")
+			mainColumn := q.source.Cols.ByName(parts[0])
+			if mainColumn == nil {
+				return "", q.notDefined(parts[0], f.Field.Pos())
+			}
+			compiled = "(" + mainColumn.DBName + " #>> '{" + path + "}')::" + q.compileType(column.Type)
+		} else {
+			compiled = column.DBName
+		}
+		orderBy[i] = compiled + " " + string(f.Direction.Value)
 	}
 	return strings.Join(orderBy, ", "), nil
 }
@@ -563,4 +575,19 @@ func (q *Query) notDefined(name string, pos token.Pos) error {
 // return error "... at ... must be ... not ..."
 func (q *Query) mustBe(name, expected, got string, pos token.Pos) error {
 	return fmt.Errorf("%v at %v must be %v not %v", name, pos, expected, got)
+}
+
+func (q *Query) compileType(t source.Datatype) string {
+	switch t {
+	case source.TypeBool:
+		return "boolean"
+	case source.TypeNumber:
+		return "numeric"
+	case source.TypeString:
+		return "text"
+	case source.TypeTime:
+		return "timestamp"
+	default:
+		return "text"
+	}
 }

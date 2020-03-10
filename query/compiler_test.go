@@ -60,6 +60,24 @@ var cases = []struct {
 		Name:   "Simple",
 		Target: "table",
 		Query: &Query{
+			orderBy: ast.NewOrderByStmtList(
+				ast.NewOrderByStmt(ast.NewIdent("a.b", 5), ast.NewOrderByDir(ast.OrderAsc, 4, token.PLUS)),
+			),
+			source: &source.Source{
+				Cols: source.NewCols(
+					source.NewCol(source.TypeObject, "a", "a", false).WithChildren(source.NewCols(
+						source.NewCol(source.TypeNumber, "b", "b", false),
+					)),
+					source.NewCol(source.TypeString, "b", "b", false),
+				),
+			},
+		},
+		Result: "select * from table order by (a #>> '{b}')::numeric asc",
+	},
+	{
+		Name:   "Simple",
+		Target: "table",
+		Query: &Query{
 			condition: ast.NewBinaryExpr(
 				token.AND,
 				ast.NewBinaryExpr(token.LSS, ast.NewIdent("a", 5), ast.NewConst("1", 6, token.INT), 7),
