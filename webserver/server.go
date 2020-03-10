@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/x-foby/w3sql/ast"
 	"github.com/x-foby/w3sql/parser"
 	"github.com/x-foby/w3sql/query"
 	"github.com/x-foby/w3sql/source"
@@ -143,6 +144,15 @@ func (w3 *Server) SetErrorHandler(errorHandler func(status int, err error) []byt
 
 // ServeHTTP is a default w3sql-handler
 func (w3 *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w3.serveHTTP(w, r, nil)
+}
+
+// ServeHTTPWithGlobals is a default w3sql-handler with global idents
+func (w3 *Server) ServeHTTPWithGlobals(w http.ResponseWriter, r *http.Request, globals map[string]ast.Expr) {
+	w3.serveHTTP(w, r, globals)
+}
+
+func (w3 *Server) serveHTTP(w http.ResponseWriter, r *http.Request, globals map[string]ast.Expr) {
 	src, err := url.QueryUnescape(strings.Replace(r.URL.RequestURI(), "+", "$add$", -1))
 	if err != nil {
 		w3.error(w, http.StatusBadRequest, err)
@@ -151,7 +161,7 @@ func (w3 *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	src = strings.Replace(src, "$add$", "+", -1)
 
 	p := parser.New()
-	q, err := p.Parse( /*w3,*/ src)
+	q, err := p.Parse(src)
 	if err != nil {
 		w3.error(w, http.StatusBadRequest, err)
 		return

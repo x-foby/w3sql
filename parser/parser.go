@@ -17,11 +17,14 @@ type Parser struct {
 	pos     token.Pos
 	tok     token.Token
 	lit     string
+	globals map[string]ast.Expr
 }
 
 // New returns new Parser
 func New() *Parser {
-	return &Parser{}
+	return &Parser{
+		globals: make(map[string]ast.Expr),
+	}
 }
 
 // Parse return a Query
@@ -65,6 +68,12 @@ func (p *Parser) Parse( /*s *Server, */ src string) (*query.Query, error) {
 	return query.New(path, fields, expr, orderBy, limits), nil
 }
 
+// WithGlobals add global idents to context
+func (p *Parser) WithGlobals(globals map[string]ast.Expr) *Parser {
+	p.globals = globals
+	return p
+}
+
 func (p *Parser) next() {
 	p.pos, p.tok, p.lit = p.scanner.Scan()
 }
@@ -75,18 +84,19 @@ func (p *Parser) unexpect() error {
 }
 
 // parseIdent return identifier
-func (p *Parser) parseIdent() (*ast.Ident, error) {
+func (p *Parser) parseIdent() (ast.Expr, error) {
 	if p.tok != token.IDENT {
 		return nil, p.unexpect()
 	}
-
+	if global, ok := p.globals[p.lit]; ok {
+		return global, nil
+	}
 	return ast.NewIdent(p.lit, p.pos), nil
 }
 
 // parsePathAndFields return list of path identifiers
 func (p *Parser) parseFields(alreadyIdent *ast.Ident) (*ast.IdentList, error) {
 	var ident *ast.Ident
-	var err error
 	fields := ast.NewIdentList()
 	if alreadyIdent != nil {
 		fields.Append(alreadyIdent)
@@ -95,9 +105,14 @@ func (p *Parser) parseFields(alreadyIdent *ast.Ident) (*ast.IdentList, error) {
 	for p.tok != token.AT {
 		switch p.tok {
 		case token.IDENT:
-			ident, err = p.parseIdent()
+			expr, err := p.parseIdent()
 			if err != nil {
 				return nil, err
+			}
+			var ok bool
+			ident, ok = expr.(*ast.Ident)
+			if !ok {
+				return nil, p.unexpect()
 			}
 		case token.COMMA, token.EOF:
 			if ident != nil {
@@ -129,9 +144,14 @@ func (p *Parser) parsePathAndFields() (string, *ast.IdentList, error) {
 		p.next()
 		switch p.tok {
 		case token.IDENT:
-			ident, err = p.parseIdent()
+			expr, err := p.parseIdent()
 			if err != nil {
 				return "", nil, err
+			}
+			var ok bool
+			ident, ok = expr.(*ast.Ident)
+			if !ok {
+				return "", nil, p.unexpect()
 			}
 		case token.QUO:
 			if ident != nil {

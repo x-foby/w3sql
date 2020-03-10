@@ -11,6 +11,7 @@ import (
 var cases = []struct {
 	Name    string
 	Src     string
+	Globals map[string]ast.Expr
 	Path    string
 	Fields  *ast.IdentList
 	Expr    ast.Expr
@@ -38,6 +39,15 @@ var cases = []struct {
 			ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 11), ast.NewConst("a", 13, token.STRING), 12),
 			10,
 		),
+	},
+	{
+		Name: "Query. Globals",
+		Src:  `/foo?a=myID`,
+		Globals: map[string]ast.Expr{
+			"myID": ast.NewConst("123", 0, token.INT),
+		},
+		Path: "foo",
+		Expr: ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 5), ast.NewConst("123", 0, token.INT), 6),
 	},
 	{
 		Name: "Query. Sequential precedences",
@@ -317,10 +327,12 @@ var cases = []struct {
 }
 
 func TestParse(t *testing.T) {
-	p := New()
-
 	for _, c := range cases {
 		t.Run(c.Name, func(t *testing.T) {
+			p := New()
+			if c.Globals != nil {
+				p.WithGlobals(c.Globals)
+			}
 			query, err := p.Parse(c.Src)
 			if err != nil {
 				t.Errorf("expected err: %v, got: %v", nil, err)
