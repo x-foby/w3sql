@@ -161,6 +161,9 @@ func (w3 *Server) serveHTTP(w http.ResponseWriter, r *http.Request, globals map[
 	src = strings.Replace(src, "$add$", "+", -1)
 
 	p := parser.New()
+	if globals != nil {
+		p.WithGlobals(globals)
+	}
 	q, err := p.Parse(src)
 	if err != nil {
 		w3.error(w, http.StatusBadRequest, err)
