@@ -1,6 +1,8 @@
 package query
 
 import (
+	"strconv"
+
 	"github.com/x-foby/w3sql/ast"
 	"github.com/x-foby/w3sql/source"
 	"github.com/x-foby/w3sql/token"
@@ -50,6 +52,30 @@ func (q *Query) Condition() ast.Expr {
 // RewriteCondition set new condition for Quoery instead current condition
 func (q *Query) RewriteCondition(cond ast.Expr) {
 	q.condition = cond
+}
+
+// From returns offset
+func (q *Query) From() int {
+	if q.limits == nil || q.limits.From == nil {
+		return 0
+	}
+	n, err := strconv.Atoi(q.limits.From.Value)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+// Length returns limit
+func (q *Query) Length() int {
+	if q.limits == nil || q.limits.Len == nil {
+		return 0
+	}
+	n, err := strconv.Atoi(q.limits.Len.Value)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 // WrapCondition wrap current condition to new condition as y
