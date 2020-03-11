@@ -221,14 +221,20 @@ func (q *Query) compileBinaryExpr(expr *ast.BinaryExpr) (string, error) {
 				return "", q.mustBe(x.Name, "string", "any", x.Pos())
 			}
 			if t := y.Token(); t != token.STRING {
-				return "", q.mustBe(x.Name, "string", t.String(), x.Pos())
+				return "", q.mustBe(y.Value, "string", t.String(), y.Pos())
 			}
 		} else {
-			if *colType != source.TypeNumber {
-				return "", q.mustBe(x.Name, "number", "any", x.Pos())
-			}
-			if t := y.Token(); t != token.INT && t != token.FLOAT {
-				return "", q.mustBe(x.Name, "number", t.String(), x.Pos())
+			switch *colType {
+			case source.TypeNumber:
+				if t := y.Token(); t != token.INT && t != token.FLOAT {
+					return "", q.mustBe(y.Value, "number", t.String(), y.Pos())
+				}
+			case source.TypeTime:
+				if t := y.Token(); t != token.STRING {
+					return "", q.mustBe(y.Value, "time", t.String(), y.Pos())
+				}
+			default:
+				return "", q.mustBe(x.Name, "number or time", "any", x.Pos())
 			}
 		}
 		compiledX, err := q.compileIdent(x)
