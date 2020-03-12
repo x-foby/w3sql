@@ -41,6 +41,9 @@ func (q *Query) Path() string {
 
 // Fields returns fields
 func (q *Query) Fields() *ast.IdentList {
+	if q.fields == nil {
+		q.fields = ast.NewIdentList()
+	}
 	return q.fields
 }
 
