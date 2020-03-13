@@ -164,9 +164,9 @@ func (q *Query) compileBinaryExpr(expr *ast.BinaryExpr) (string, error) {
 		y, okY := expr.Y.(*ast.ExprList)
 		if okX != okY && (okX || okY) {
 			if okX {
-				return q.compileBinaryExprWithExprList(expr.Y, x.(*ast.ExprList))
+				return q.compileBinaryExprWithExprList(expr.Y, x.(*ast.ExprList), expr.Op)
 			}
-			return q.compileBinaryExprWithExprList(expr.X, y.(*ast.ExprList))
+			return q.compileBinaryExprWithExprList(expr.X, y.(*ast.ExprList), expr.Op)
 		}
 		x, ok := expr.X.(*ast.Ident)
 		if !ok {
@@ -255,7 +255,7 @@ func (q *Query) compileBinaryExpr(expr *ast.BinaryExpr) (string, error) {
 	}
 }
 
-func (q *Query) compileBinaryExprWithExprList(x ast.Expr, y *ast.ExprList) (string, error) {
+func (q *Query) compileBinaryExprWithExprList(x ast.Expr, y *ast.ExprList, op token.Token) (string, error) {
 	typedX, ok := x.(*ast.Ident)
 	if !ok {
 		return "", q.unexpect(x.Token(), x.Pos())
@@ -279,7 +279,11 @@ func (q *Query) compileBinaryExprWithExprList(x ast.Expr, y *ast.ExprList) (stri
 		if err != nil {
 			return "", err
 		}
-		return compiledX + " in " + compiledY, nil
+		compiledOp := " in "
+		if op == token.NEQ {
+			compiledOp = " not in "
+		}
+		return compiledX + compiledOp + compiledY, nil
 	}
 
 	if column.Type != source.TypeObject {

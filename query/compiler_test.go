@@ -39,6 +39,44 @@ var cases = []struct {
 		Query: &Query{
 			condition: ast.NewBinaryExpr(
 				token.AND,
+				ast.NewBinaryExpr(token.NEQ, ast.NewIdent("colA", 5), ast.NewConst("b", 7, token.STRING), 6),
+				ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 12), ast.NewIdent("true", 14), 13),
+				10,
+			),
+			source: &source.Source{
+				Cols: source.NewCols(
+					source.NewCol(source.TypeString, "colA", "col_a", false),
+					source.NewCol(source.TypeBool, "b", "b", false),
+				),
+			},
+		},
+		Result: "select * from table where col_a != 'b' and b = true",
+	},
+	{
+		Name:   "Simple",
+		Target: "table",
+		Query: &Query{
+			condition: ast.NewBinaryExpr(
+				token.AND,
+				ast.NewBinaryExpr(token.NEQ, ast.NewIdent("colA", 5), ast.NewExprList(6, ast.NewConst("b", 7, token.STRING), ast.NewConst("a", 7, token.STRING)), 6),
+				ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 12), ast.NewIdent("true", 14), 13),
+				10,
+			),
+			source: &source.Source{
+				Cols: source.NewCols(
+					source.NewCol(source.TypeString, "colA", "col_a", false),
+					source.NewCol(source.TypeBool, "b", "b", false),
+				),
+			},
+		},
+		Result: "select * from table where col_a not in ('b', 'a') and b = true",
+	},
+	{
+		Name:   "Simple",
+		Target: "table",
+		Query: &Query{
+			condition: ast.NewBinaryExpr(
+				token.AND,
 				ast.NewBinaryExpr(token.EQL, ast.NewIdent("a", 5), ast.NewConst("b", 7, token.STRING), 6),
 				ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 12), ast.NewConst("a", 14, token.STRING), 13),
 				10,
