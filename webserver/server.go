@@ -189,6 +189,9 @@ func (w3 *Server) serveHTTP(w http.ResponseWriter, r *http.Request, globals map[
 		w3.error(w, status, err)
 		return
 	}
+	if status == 0 {
+		return
+	}
 
 	buf, err := marshalJSON(data, w3.prettyJSON)
 	if err != nil {
