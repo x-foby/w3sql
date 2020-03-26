@@ -236,6 +236,28 @@ var cases = []struct {
 		Query: &Query{
 			fields: ast.NewIdentList(ast.NewIdent("a", 1), ast.NewIdent("b", 3)),
 			condition: ast.NewBinaryExpr(
+				token.EQL,
+				ast.NewIdent("a", 5),
+				ast.NewExprList(6, ast.NewBinaryExpr(token.EQL, ast.NewIdent("b", 5), ast.NewIdent("null", 16), 6)),
+				16,
+			),
+			source: &source.Source{
+				Cols: source.NewCols(
+					source.NewCol(source.TypeObject, "a", "a", true).WithChildren(source.NewCols(
+						source.NewCol(source.TypeString, "b", "b", false),
+					)),
+					source.NewCol(source.TypeString, "b", "b", true),
+				),
+			},
+		},
+		Result: `select a, b from table where exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{b}')::text is null)`,
+	},
+	{
+		Name:   "Simple",
+		Target: "table",
+		Query: &Query{
+			fields: ast.NewIdentList(ast.NewIdent("a", 1), ast.NewIdent("b", 3)),
+			condition: ast.NewBinaryExpr(
 				token.AND,
 				ast.NewBinaryExpr(
 					token.EQL,

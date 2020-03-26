@@ -384,6 +384,7 @@ func (q *Query) compileArrayOfObject(expr *ast.BinaryExpr, column *source.Col) (
 	}
 	var compiledY string
 	yConst, ok := expr.Y.(*ast.Const)
+	needTypeCast := ok
 	if !ok {
 		yIdent, ok := expr.Y.(*ast.Ident)
 		if !ok {
@@ -405,7 +406,10 @@ func (q *Query) compileArrayOfObject(expr *ast.BinaryExpr, column *source.Col) (
 	if err != nil {
 		return "", err
 	}
-	return "(q.item #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
+	if needTypeCast {
+		return "(q.item #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
+	}
+	return "(q.item #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY, nil
 }
 
 func (q *Query) compileObject(expr *ast.BinaryExpr, column *source.Col) (string, error) {
