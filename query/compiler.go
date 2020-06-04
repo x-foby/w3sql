@@ -28,7 +28,7 @@ func (q *Query) Compile(target string) (string, error) {
 	if selectStmt != "" {
 		parts = append(parts, "select", selectStmt)
 	}
-	parts = append(parts, "from", target)
+	parts = append(parts, "from", target+" q")
 	whereStmt, err = q.compileWhere()
 	if err != nil {
 		return "", err
@@ -63,7 +63,7 @@ func (q *Query) compileSelect() (string, error) {
 		if column == nil {
 			return "", q.notDefined(f.Name, f.Pos())
 		}
-		fields[i] = column.DBName
+		fields[i] = "q." + column.DBName
 	}
 	return strings.Join(fields, ", "), nil
 }
@@ -294,7 +294,7 @@ func (q *Query) compileBinaryExprWithExprList(x ast.Expr, y *ast.ExprList, op to
 		return "", err
 	}
 	if column.IsArray {
-		return "exists (select 1 from (select jsonb_array_elements(" + column.DBName + "::jsonb) item) q where " + compiledY + ")", nil
+		return "exists (select 1 from (select jsonb_array_elements(q." + column.DBName + "::jsonb) item) j where " + compiledY + ")", nil
 	}
 	return compiledY, nil
 }
@@ -407,9 +407,9 @@ func (q *Query) compileArrayOfObject(expr *ast.BinaryExpr, column *source.Col) (
 		return "", err
 	}
 	if needTypeCast {
-		return "(q.item #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
+		return "(j.item #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
 	}
-	return "(q.item #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY, nil
+	return "(j.item #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY, nil
 }
 
 func (q *Query) compileObject(expr *ast.BinaryExpr, column *source.Col) (string, error) {
@@ -462,7 +462,7 @@ func (q *Query) compileObject(expr *ast.BinaryExpr, column *source.Col) (string,
 	if err != nil {
 		return "", err
 	}
-	return "(" + column.DBName + " #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
+	return "(q." + column.DBName + " #>> '{" + path + "}')::" + typeCast + " " + op + " " + compiledY + "::" + typeCast, nil
 }
 
 func (q *Query) compileIdent(expr *ast.Ident) (string, error) {
@@ -474,7 +474,7 @@ func (q *Query) compileIdent(expr *ast.Ident) (string, error) {
 		if column == nil {
 			return "", q.notDefined(expr.Name, expr.Pos())
 		}
-		return column.DBName, nil
+		return "q." + column.DBName, nil
 	}
 }
 

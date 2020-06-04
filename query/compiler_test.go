@@ -31,7 +31,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select * from table where col_a = 'b' and b = true",
+		Result: "select * from table q where q.col_a = 'b' and q.b = true",
 	},
 	{
 		Name:   "Simple",
@@ -50,7 +50,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select * from table where col_a != 'b' and b = true",
+		Result: "select * from table q where q.col_a != 'b' and q.b = true",
 	},
 	{
 		Name:   "Simple",
@@ -69,7 +69,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select * from table where col_a not in ('b', 'a') and b = true",
+		Result: "select * from table q where q.col_a not in ('b', 'a') and q.b = true",
 	},
 	{
 		Name:   "Simple",
@@ -92,7 +92,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select * from table where a = 'b' and b = 'a' order by a asc, b desc",
+		Result: "select * from table q where q.a = 'b' and q.b = 'a' order by a asc, b desc",
 	},
 	{
 		Name:   "Simple",
@@ -110,7 +110,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select * from table order by (a #>> '{b}')::numeric asc",
+		Result: "select * from table q order by (a #>> '{b}')::numeric asc",
 	},
 	{
 		Name:   "Simple",
@@ -141,7 +141,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select * from table where a < 1 and b <= 2 and c > 3 and d >= 4",
+		Result: "select * from table q where q.a < 1 and q.b <= 2 and q.c > 3 and q.d >= 4",
 	},
 	{
 		Name:   "Simple",
@@ -161,7 +161,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select a from table where a = 'b' and b = 'a'",
+		Result: "select q.a from table q where q.a = 'b' and q.b = 'a'",
 	},
 	{
 		Name:   "Simple",
@@ -181,7 +181,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: "select a, b from table where a = 'b' and b = 'a'",
+		Result: "select q.a, q.b from table q where q.a = 'b' and q.b = 'a'",
 	},
 	{
 		Name:   "Simple",
@@ -201,7 +201,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: `select a, b from table where a in ('a', 'b') and b @> '"a"'`,
+		Result: `select q.a, q.b from table q where q.a in ('a', 'b') and q.b @> '"a"'`,
 	},
 	{
 		Name:   "Simple",
@@ -228,7 +228,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: `select a, b from table where exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{b}')::text = 'b'::text) and b @> '"a"'`,
+		Result: `select q.a, q.b from table q where exists (select 1 from (select jsonb_array_elements(q.a::jsonb) item) j where (j.item #>> '{b}')::text = 'b'::text) and q.b @> '"a"'`,
 	},
 	{
 		Name:   "Simple",
@@ -250,7 +250,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: `select a, b from table where exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{b}')::text is null)`,
+		Result: `select q.a, q.b from table q where exists (select 1 from (select jsonb_array_elements(q.a::jsonb) item) j where (j.item #>> '{b}')::text is null)`,
 	},
 	{
 		Name:   "Simple",
@@ -277,7 +277,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: `select a, b from table where (a #>> '{b}')::text = 'b'::text and b @> '"a"'`,
+		Result: `select q.a, q.b from table q where (q.a #>> '{b}')::text = 'b'::text and q.b @> '"a"'`,
 	},
 	{
 		Name:   "Simple",
@@ -310,7 +310,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: `select a, b from table where exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{b}')::text = 'b'::text and (q.item #>> '{c,d}')::numeric = 4::numeric) and b @> '"a"'`,
+		Result: `select q.a, q.b from table q where exists (select 1 from (select jsonb_array_elements(q.a::jsonb) item) j where (j.item #>> '{b}')::text = 'b'::text and (j.item #>> '{c,d}')::numeric = 4::numeric) and q.b @> '"a"'`,
 	},
 	{
 		Name:   "Simple",
@@ -362,7 +362,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: `select * from table where (exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{a}')::text = 'b'::text) or exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{a}')::text = 'c'::text)) and exists (select 1 from (select jsonb_array_elements(a::jsonb) item) q where (q.item #>> '{b}')::numeric = 1::numeric) and b = true`,
+		Result: `select * from table q where (exists (select 1 from (select jsonb_array_elements(q.a::jsonb) item) j where (j.item #>> '{a}')::text = 'b'::text) or exists (select 1 from (select jsonb_array_elements(q.a::jsonb) item) j where (j.item #>> '{a}')::text = 'c'::text)) and exists (select 1 from (select jsonb_array_elements(q.a::jsonb) item) j where (j.item #>> '{b}')::numeric = 1::numeric) and q.b = true`,
 	},
 	{
 		Name:   "Simple",
@@ -391,7 +391,7 @@ var cases = []struct {
 				),
 			},
 		},
-		Result: `select * from table where (a = 'a' or a = 'b' or a = 'c') and b = 'a'`,
+		Result: `select * from table q where (q.a = 'a' or q.a = 'b' or q.a = 'c') and q.b = 'a'`,
 	},
 }
 
