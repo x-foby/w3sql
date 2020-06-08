@@ -89,3 +89,8 @@ func (q *Query) WrapCondition(x ast.Expr, operator token.Token) {
 		q.condition = ast.NewBinaryExpr(operator, x, q.condition, 0)
 	}
 }
+
+// OrderBy returns OrderBy statements
+func (q *Query) OrderBy() *ast.OrderByStmtList {
+	return q.orderBy
+}
